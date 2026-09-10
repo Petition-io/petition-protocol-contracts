@@ -139,32 +139,32 @@ Scripts live in [`script/`](script/). Put secrets in a local `.env` (gitignored)
 
 | Script | Contract | Required env |
 | --- | --- | --- |
+| `script/DeployPetitionCore.s.sol` | `PetitionCore` | `PRIVATE_KEY`, `PRICE_FEED` · optional `INITIAL_OWNER` |
+| `script/DeployProfile.s.sol` | `Profile` | `PRIVATE_KEY` · optional `INITIAL_OWNER` |
 | `script/DeployTimelockGovernor.s.sol` | `TimelockGovernor` | `PRIVATE_KEY` · optional `PROPOSER`, `EXECUTOR`, `ADMIN`, `MIN_DELAY` |
-| `script/DeployDeZKIdentity.s.sol` | `DeZKIdentity` | `PRIVATE_KEY` · optional `INITIAL_MANAGER` |
-| `script/DeployDeZKIdentityRegistry.s.sol` | `DeZKIdentityRegistry` | `PRIVATE_KEY`, `ISSUER_REGISTRY` |
+
+**PetitionCore** (`PRICE_FEED` is a Chainlink AggregatorV3 feed):
+
+```bash
+export PRICE_FEED=0x...
+
+forge script script/DeployPetitionCore.s.sol:DeployPetitionCore \
+  --rpc-url $RPC_URL \
+  --broadcast
+```
+
+**Profile:**
+
+```bash
+forge script script/DeployProfile.s.sol:DeployProfile \
+  --rpc-url $RPC_URL \
+  --broadcast
+```
 
 **Timelock** (defaults: proposer = deployer, executor = anyone, delay = 48h):
 
 ```bash
 forge script script/DeployTimelockGovernor.s.sol:DeployTimelockGovernor \
-  --rpc-url $RPC_URL \
-  --broadcast
-```
-
-**Identity:**
-
-```bash
-forge script script/DeployDeZKIdentity.s.sol:DeployDeZKIdentity \
-  --rpc-url $RPC_URL \
-  --broadcast
-```
-
-**Registry:**
-
-```bash
-export ISSUER_REGISTRY=0x...
-
-forge script script/DeployDeZKIdentityRegistry.s.sol:DeployDeZKIdentityRegistry \
   --rpc-url $RPC_URL \
   --broadcast
 ```
