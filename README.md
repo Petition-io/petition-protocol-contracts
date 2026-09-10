@@ -1,6 +1,6 @@
 # Petition Protocol Contracts
 
-Solidity contracts for **Petition.io** — on-chain petitions, user profiles, and **deZK** self-sovereign identity.
+Solidity contracts for **Petition.io** — on-chain petitions, user profiles, and time-delayed governance.
 
 Built with [Foundry](https://book.getfoundry.sh/) and [OpenZeppelin](https://docs.openzeppelin.com/contracts) `v5`.
 
@@ -15,58 +15,34 @@ Built with [Foundry](https://book.getfoundry.sh/) and [OpenZeppelin](https://doc
 
 ## Overview
 
-This repository holds the protocol layer:
+This repository is the protocol layer for campaigns and profiles:
 
 | Layer | What it does |
 | --- | --- |
-| **Core** | Campaigns, signatures, profiles, and petition lifecycle |
-| **deZK Identity** | Per-user on-chain passports, claims, and issuer-backed verification |
-| **Governance** | 48-hour timelock so issuer changes cannot be applied instantly |
-
-A wallet owns a `DeZKIdentity`. Trusted issuers sign claims off-chain. The user stores those claims on their identity. `DeZKIdentityRegistry` is the check other contracts use: *is this wallet verified for this topic?*
+| **Core** | Campaign create/sign flow, fees, and petition lifecycle |
+| **Profile** | Arweave-backed user profiles, signature versions, and campaign shares |
+| **Governance** | 48-hour timelock so sensitive admin actions cannot be applied instantly |
 
 ```
 User wallet
-    │  MANAGEMENT key
-    ▼
-DeZKIdentity          ← ERC-734 keys + ERC-735 claims
-    │  registerIdentity()
-    ▼
-DeZKIdentityRegistry  ← trusted issuer + valid sig + not expired
     │
-    ▼
-PetitionCore / Profile
+    ├─► Profile            ← identity pointers, signature versions, shares
+    │
+    └─► PetitionCore       ← campaigns, signatures, fees, price feed
+                │
+                ▼
+        TimelockGovernor   ← propose → 48h delay → execute
 ```
-
-Issuer add/remove on the registry is meant to go through `TimelockGovernor` (propose → 48h delay → execute).
 
 ---
 
 ## Contracts
 
-### deZK Identity
-
-| Contract | Path | Role |
-| --- | --- | --- |
-| `DeZKIdentity` | [`src/dezkId/DeZKIdentity.sol`](src/dezkId/DeZKIdentity.sol) | One contract per user. Key management (ERC-734), claims (ERC-735), and an ERC-725Y data store. |
-| `DeZKIdentityRegistry` | [`src/dezkId/DeZKIdentityRegistry.sol`](src/dezkId/DeZKIdentityRegistry.sol) | Directory of identities. `isVerified(wallet, topic)` requires a registered identity, a valid claim, a trusted issuer, and a non-expired payload. |
-| `TimelockGovernor` | [`src/dezkId/TimelockGovernor.sol`](src/dezkId/TimelockGovernor.sol) | Thin wrapper around OpenZeppelin `TimelockController`. Recommended delay: **48 hours**. |
-
-**Claim data convention** (signed by the issuer):
-
-```solidity
-abi.encode(uint256 expiresAt, bytes32 payloadHash)
-// expiresAt = unix seconds; 0 = never expires
-```
-
-Users self-register by proving they hold the identity’s `MANAGEMENT` key. No admin approval.
-
-### Core
-
 | Contract | Path | Role |
 | --- | --- | --- |
 | `PetitionCore` | [`src/core/PetitionCore.sol`](src/core/PetitionCore.sol) | Campaign create/sign flow, fees, Chainlink price feed, EIP-712, governance and relay executors. |
 | `Profile` | [`src/core/Profile.sol`](src/core/Profile.sol) | Arweave-backed profile pointers, signature versions, campaign shares, and module authorization. |
+| `TimelockGovernor` | [`src/timelock/TimelockGovernor.sol`](src/timelock/TimelockGovernor.sol) | Wrapper around OpenZeppelin `TimelockController`. Recommended delay: **48 hours**. |
 
 ---
 
@@ -106,19 +82,17 @@ forge build
 
 ```bash
 forge test
-forge test -vvv                  # traces
-forge test --match-path test/dezkId
-forge test --match-contract DeZKIdentityTest
-forge test --match-test test_AddAndRemoveClaim
+forge test -vvv                       # traces
+forge test --match-path test/core
+forge test --match-contract ProfileTest
+forge test --match-test test_ConstructorSetsOwner
 ```
 
 | File | Coverage |
 | --- | --- |
-| [`test/dezkId/DeZKIdentity.t.sol`](test/dezkId/DeZKIdentity.t.sol) | Management keys, claims, signatures, ERC-725Y data |
-| [`test/dezkId/DeZKIdentityRegistry.t.sol`](test/dezkId/DeZKIdentityRegistry.t.sol) | Register / deregister, `isVerified`, expiry, untrusted issuer |
-| [`test/dezkId/TimelockGovernor.t.sol`](test/dezkId/TimelockGovernor.t.sol) | Roles, 48h delay, schedule → execute |
-| [`test/core/Profile.t.sol`](test/core/Profile.t.sol) | Owner, governance executor, modules, profile updates |
 | [`test/core/PetitionCore.t.sol`](test/core/PetitionCore.t.sol) | Owner, price feed, governance / relay executors |
+| [`test/core/Profile.t.sol`](test/core/Profile.t.sol) | Owner, governance executor, modules, profile updates |
+| [`test/timelock/TimelockGovernor.t.sol`](test/timelock/TimelockGovernor.t.sol) | Roles, 48h delay, schedule → execute |
 
 ### Format and gas
 
@@ -178,10 +152,10 @@ Dry-run (no broadcast) is the default if you omit `--broadcast`.
 ```
 src/
   core/          PetitionCore, Profile
-  dezkId/        DeZKIdentity, DeZKIdentityRegistry, TimelockGovernor
+  timelock/      TimelockGovernor
 test/
   core/
-  dezkId/
+  timelock/
 script/          Foundry deploy scripts
 lib/             forge-std, openzeppelin-contracts
 foundry.toml
