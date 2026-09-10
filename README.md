@@ -175,3 +175,17 @@ foundry.toml
 | `cast` | RPC / encoding / calls |
 
 Docs: [Foundry Book](https://book.getfoundry.sh/) · [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts)
+
+---
+
+## License
+
+This project is licensed under the **MIT License**. See [`LICENSE`](LICENSE).
+
+All first-party Solidity sources include `SPDX-License-Identifier: MIT`.
+
+| Component | License |
+| --- | --- |
+| Petition protocol contracts (`src/`, `test/`, `script/`) | [MIT](LICENSE) |
+| [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) | MIT |
+| [forge-std](https://github.com/foundry-rs/forge-std) | MIT OR Apache-2.0 |
